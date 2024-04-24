@@ -1,5 +1,6 @@
 import requests
 import difflib
+from bs4 import BeautifulSoup
 
 # URL de la página a monitorear
 url = "http://www.registresolicitants.cat/registre/"
@@ -7,7 +8,7 @@ url = "http://www.registresolicitants.cat/registre/"
 # Archivo para almacenar el contenido previo html
 archivo_previo = 'contenido_previo.html'
 
-def obtener_contenido(url):
+def obtener_y_parsear_contenido(url,class_name):
     # Realizar una solicitud GET para obtener el contenido de la página, usando el contexto SSL generado
     payload = {}
     # cookie en el archivo secrets.txt, segunda línea
@@ -16,8 +17,22 @@ def obtener_contenido(url):
         'Cookie': cookie
     }
     response = requests.request("GET", url, headers=headers, data=payload)
-    # Devolver el contenido html de la página como string
-    return str(response.text.encode('utf-8'))
+    contenido_raw = str(response.text.encode('utf-8'))
+    # Parsear el contenido html
+    soup = BeautifulSoup(contenido_raw, 'html.parser')
+    # Obtener el contenido del cuerpo del html. nos interesa solo el contenido dentro del div clas=contenidohome
+    # opcion 1: obtener el div con la clase correspondiente
+    option1 = soup.find('div', class_=class_name).prettify()
+    #opcion 2: obtener los <p> 
+    option2 = soup.find_all('p')
+    # eliminar odas las etiquetas html de ambas opciones
+    option1 = BeautifulSoup(option1, 'html.parser').get_text()
+    option2 = [BeautifulSoup(p.prettify(), 'html.parser').get_text() for p in option2]
+    # eliminar todos los saltos de línea
+    option1 = option1.replace('\n', '')
+    option2 = [p.replace('\n', '') for p in option2]
+    # devolver ambos resultados concatenados
+    return option1 + '\n'.join(option2)
 
 def comparar_contenido(contenido_actual, contenido_previo):
     # Obtener diferencias entre el contenido actual y el contenido previo en el cuerpo del html
@@ -36,21 +51,29 @@ def enviar_notificacion(cambio):
     webhook_url = str(open('secrets.txt').read().strip().split('\n')[0])
     requests.post(webhook_url, json=payload)
 
-# Obtener el contenido previo, si existe
-try:
-    with open(archivo_previo, 'r') as archivo:
-        contenido_previo = archivo.read()
-except FileNotFoundError:
-    contenido_previo = ''
+def todo(url,archivo_previo, class_name):
+    # Obtener el contenido previo, si existe
+    try:
+        with open(archivo_previo, 'r') as archivo:
+            contenido_previo = archivo.read()
+    except FileNotFoundError:
+        contenido_previo = ''
 
-# Obtener el contenido actual
-contenido_actual = obtener_contenido(url)
+    # Obtener el contenido actual
+    contenido_actual = obtener_y_parsear_contenido(url,class_name)
+    print(contenido_actual)
 
-# Comparar contenido actual con contenido previo
-cambio = comparar_contenido(contenido_actual, contenido_previo)
+    # Comparar contenido actual con contenido previo
+    cambio = comparar_contenido(contenido_actual, contenido_previo)
 
-# Si hay cambios, enviar notificación y actualizar el archivo con el nuevo contenido
-if cambio:
-    enviar_notificacion(cambio)
-    with open(archivo_previo, 'w') as archivo:
-        archivo.write(str(contenido_actual))
+    # Si hay cambios, enviar notificación y actualizar el archivo con el nuevo contenido
+    if cambio:
+        enviar_notificacion(cambio)
+        with open(archivo_previo, 'w') as archivo:
+            archivo.write(str(contenido_actual))
+
+# Para la página de Catalunya:
+todo("http://www.registresolicitants.cat/registre/",'contenido_previo_cat.html','contenidohome')
+
+# Para la página de Badalona:
+todo("https://www.olh.cat/habitatge-protegit/",'contenido_previo_bdn.html','wpb_wrapper')
