@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Navigate to the directory containing your repository
-cd /vpo
+cd "$HOME/vpo" 
 
 # Pull the latest changes from the Git repository
 git pull

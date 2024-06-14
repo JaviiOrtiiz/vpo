@@ -1,2 +1,2 @@
 #!/bin/bash
-docker run -d -v /vpo:/app --restart always --name vpo --privileged vpo
+docker run -d -v "$HOME/vpo":/app --restart always --name vpo --privileged vpo
