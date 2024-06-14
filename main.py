@@ -43,13 +43,14 @@ def comparar_contenido(contenido_actual, contenido_previo):
     # Devolver los cambios como string
     return '\n'.join(cambios)
 
-def enviar_notificacion(cambio):
+def enviar_notificacion(message):
     # Aquí debes ingresar la URL del webhook donde deseas recibir las notificaciones, esta en el archivo secrets.txt
     # Aquí puedes personalizar el contenido de la notificación
-    payload = {'cambio': cambio}
+    payload = {'message': message}
+    headers = {'Content-Type': 'application/json'}
     # Enviar solicitud POST al webhook, en el archivo secrets.txt, primera línea
     webhook_url = str(open('secrets.txt').read().strip().split('\n')[0])
-    requests.post(webhook_url, json=payload)
+    requests.post(webhook_url, json=payload, headers=headers)
 
 def todo(url,archivo_previo, class_name):
     # Obtener el contenido previo, si existe
@@ -61,13 +62,16 @@ def todo(url,archivo_previo, class_name):
 
     # Obtener el contenido actual
     contenido_actual = obtener_y_parsear_contenido(url,class_name)
-    print(contenido_actual)
 
     # Comparar contenido actual con contenido previo
     cambio = comparar_contenido(contenido_actual, contenido_previo)
 
     # Si hay cambios, enviar notificación y actualizar el archivo con el nuevo contenido
     if cambio:
+        if 'Badalona' in cambio:
+            cambio = 'Badalona'
+        else:
+            cambio = 'Catalunya'
         enviar_notificacion(cambio)
         with open(archivo_previo, 'w') as archivo:
             archivo.write(str(contenido_actual))
