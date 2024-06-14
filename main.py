@@ -56,7 +56,9 @@ def todo(url,archivo_previo, class_name):
     # Obtener el contenido previo, si existe
     try:
         with open(archivo_previo, 'r') as archivo:
-            contenido_previo = archivo.read()
+            
+            #contenido_previo = archivo.read() # error invalid start byte
+            contenido_previo = archivo.read().encode('utf-8').decode('utf-8')
     except FileNotFoundError:
         contenido_previo = ''
 
