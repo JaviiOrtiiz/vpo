@@ -68,7 +68,7 @@ def todo(url,archivo_previo, class_name):
 
     # Si hay cambios, enviar notificación y actualizar el archivo con el nuevo contenido
     if cambio:
-        if 'Badalona' in cambio:
+        if 'olh.cat' in url:
             cambio = 'Badalona'
         else:
             cambio = 'Catalunya'
