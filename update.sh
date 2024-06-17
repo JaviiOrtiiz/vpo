@@ -4,7 +4,7 @@
 cd "$HOME/vpo" 
 
 # Pull the latest changes from the Git repository
-git pull
+git pull origin cat
 
 # Stop and remove the old container if it exists
 if [ "$(docker ps -q -f name=vpo)" ]; then

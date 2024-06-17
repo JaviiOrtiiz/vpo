@@ -2,6 +2,7 @@ import requests
 import difflib
 from bs4 import BeautifulSoup
 import logging
+import time
 
 # URL de la página a monitorear
 url = "http://www.registresolicitants.cat/registre/"
@@ -9,7 +10,7 @@ url = "http://www.registresolicitants.cat/registre/"
 # Archivo para almacenar el contenido previo html
 archivo_previo = 'contenido_previo.html'
 
-def obtener_y_parsear_contenido(url,class_name):
+def obtener_y_parsear_contenido(url):
     # Realizar una solicitud GET para obtener el contenido de la página, usando el contexto SSL generado
     payload = {}
     # cookie en el archivo secrets.txt, segunda línea
@@ -17,23 +18,23 @@ def obtener_y_parsear_contenido(url,class_name):
     headers = {
         'Cookie': cookie
     }
+    # utf 8 a response
     response = requests.request("GET", url, headers=headers, data=payload)
-    contenido_raw = str(response.text.encode('utf-8'))
+    contenido_raw = str(response.text)
     # Parsear el contenido html
     soup = BeautifulSoup(contenido_raw, 'html.parser')
     # Obtener el contenido del cuerpo del html. nos interesa solo el contenido dentro del div clas=contenidohome
     # opcion 1: obtener el div con la clase correspondiente
-    option1 = soup.find('div', class_=class_name).prettify()
-    #opcion 2: obtener los <p> 
-    option2 = soup.find_all('p')
+    texto = soup.find('div', class_="contenidohome").prettify()
     # eliminar odas las etiquetas html de ambas opciones
-    option1 = BeautifulSoup(option1, 'html.parser').get_text()
-    option2 = [BeautifulSoup(p.prettify(), 'html.parser').get_text() for p in option2]
+    texto = BeautifulSoup(texto, 'html.parser').get_text()
+    
     # eliminar todos los saltos de línea
-    option1 = option1.replace('\n', '')
-    option2 = [p.replace('\n', '') for p in option2]
+    # texto = texto.replace('\n', '')
+    
     # devolver ambos resultados concatenados
-    return option1 + '\n'.join(option2)
+    print(texto)
+    return texto
 
 def comparar_contenido(contenido_actual, contenido_previo):
     # Obtener diferencias entre el contenido actual y el contenido previo en el cuerpo del html
@@ -41,8 +42,8 @@ def comparar_contenido(contenido_actual, contenido_previo):
     diff = list(differ.compare(contenido_previo.splitlines(), contenido_actual.splitlines()))
     # Filtrar solo las líneas que han cambiado
     cambios = [linea for linea in diff if linea.startswith('+ ') or linea.startswith('- ')]
-    # Devolver los cambios como string
-    return '\n'.join(cambios)
+    # Devolver los cambios en lista
+    return cambios
 
 def enviar_notificacion(cambio):
     # Aquí debes ingresar la URL del webhook donde deseas recibir las notificaciones, esta en el archivo secrets.txt
@@ -53,36 +54,31 @@ def enviar_notificacion(cambio):
     webhook_url = str(open('secrets.txt').read().strip().split('\n')[0])
     requests.post(webhook_url, json=payload, headers=headers)
 
-def todo(url,archivo_previo, class_name):
+def main():
     # Obtener el contenido previo, si existe
     try:
         with open(archivo_previo, 'r', encoding='utf-8') as archivo:
             contenido_previo = archivo.read()
     except FileNotFoundError:
         contenido_previo = ''
-
     try:
         # Obtener el contenido actual
-        contenido_actual = obtener_y_parsear_contenido(url,class_name)
+        contenido_actual = obtener_y_parsear_contenido(url)
 
         # Comparar contenido actual con contenido previo
         cambio = comparar_contenido(contenido_actual, contenido_previo)
 
-        # Si hay cambios, enviar notificación y actualizar el archivo con el nuevo contenido
+        # Si hay cambios en la lista cambios, enviar notificación y actualizar el archivo con el nuevo contenido
         if cambio:
-            if "Badalona" in url:
-                cambio = "Badalona"
-            else:
-                cambio = "Catalunya"
-            enviar_notificacion(cambio)
-            with open(archivo_previo, 'w', encoding='utf-8') as archivo:
-                archivo.write(str(contenido_actual))
+            for cambio_element in cambio:
+                # Si pone "Badalona" en el cambio, enviar notificación O empieza por "    - ".
+                if "Badalona" in cambio_element:
+                    enviar_notificacion(cambio_element. replace("    - ", ""))
+                    time.sleep(1)
+        with open(archivo_previo, 'w', encoding='utf-8') as archivo:
+            archivo.write(str(contenido_actual)) 
     except Exception as e:
         print(e)
         logging.error(e)
 
-# Para la página de Catalunya:
-todo("http://www.registresolicitants.cat/registre/",'contenido_previo_cat.html','contenidohome')
-
-# Para la página de Badalona:
-todo("https://www.olh.cat/habitatge-protegit/",'contenido_previo_bdn.html','wpb_wrapper')
+main()

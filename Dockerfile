@@ -17,10 +17,7 @@ COPY run.sh .
 COPY secrets.txt .
 
 # Copiar contenido_previo.html al contenedor
-COPY contenido_previo_cat.html .
-
-# Copiar contenido_previo.html al contenedor
-COPY contenido_previo_bdn.html .
+COPY contenido_previo.html .
 
 #Copiar entrypoint.sh al contenedor
 COPY entrypoint.sh .
