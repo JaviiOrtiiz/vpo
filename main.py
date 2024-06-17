@@ -2,6 +2,7 @@ import requests
 import difflib
 from bs4 import BeautifulSoup
 import logging
+import time
 
 # URL de la página a monitorear
 url = "http://www.registresolicitants.cat/registre/"
@@ -71,8 +72,9 @@ def main():
         if cambio:
             for cambio_element in cambio:
                 # Si pone "Badalona" en el cambio, enviar notificación O empieza por "    - ".
-                if "Badalona" in cambio_element or cambio_element.startswith("    - "):
+                if "Badalona" in cambio_element:
                     enviar_notificacion(cambio_element. replace("    - ", ""))
+                    time.sleep(1)
         with open(archivo_previo, 'w', encoding='utf-8') as archivo:
             archivo.write(str(contenido_actual)) 
     except Exception as e:
