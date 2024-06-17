@@ -1,6 +1,7 @@
 import requests
 import difflib
 from bs4 import BeautifulSoup
+import logging
 
 # URL de la página a monitorear
 url = "http://www.registresolicitants.cat/registre/"
@@ -46,7 +47,7 @@ def comparar_contenido(contenido_actual, contenido_previo):
 def enviar_notificacion(cambio):
     # Aquí debes ingresar la URL del webhook donde deseas recibir las notificaciones, esta en el archivo secrets.txt
     # Aquí puedes personalizar el contenido de la notificación
-    payload = {'cambio': cambio}
+    payload = {'message': cambio}
     headers = {'Content-Type': 'application/json'}
     # Enviar solicitud POST al webhook, en el archivo secrets.txt, primera línea
     webhook_url = str(open('secrets.txt').read().strip().split('\n')[0])
@@ -55,28 +56,30 @@ def enviar_notificacion(cambio):
 def todo(url,archivo_previo, class_name):
     # Obtener el contenido previo, si existe
     try:
-        with open(archivo_previo, 'r') as archivo:
-            
-            #contenido_previo = archivo.read() # error invalid start byte
-            contenido_previo = archivo.read().encode('utf-8').decode('utf-8')
+        with open(archivo_previo, 'r', encoding='utf-8') as archivo:
+            contenido_previo = archivo.read()
     except FileNotFoundError:
         contenido_previo = ''
 
-    # Obtener el contenido actual
-    contenido_actual = obtener_y_parsear_contenido(url,class_name)
+    try:
+        # Obtener el contenido actual
+        contenido_actual = obtener_y_parsear_contenido(url,class_name)
 
-    # Comparar contenido actual con contenido previo
-    cambio = comparar_contenido(contenido_actual, contenido_previo)
+        # Comparar contenido actual con contenido previo
+        cambio = comparar_contenido(contenido_actual, contenido_previo)
 
-    # Si hay cambios, enviar notificación y actualizar el archivo con el nuevo contenido
-    if cambio:
-        if 'olh' in url:
-            cambio = 'Badalona'
-        else:
-            cambio = 'Catalunya'
-        enviar_notificacion(cambio)
-        with open(archivo_previo, 'w') as archivo:
-            archivo.write(str(contenido_actual))
+        # Si hay cambios, enviar notificación y actualizar el archivo con el nuevo contenido
+        if cambio:
+            if "Badalona" in url:
+                cambio = "Badalona"
+            else:
+                cambio = "Catalunya"
+            enviar_notificacion(cambio)
+            with open(archivo_previo, 'w', encoding='utf-8') as archivo:
+                archivo.write(str(contenido_actual))
+    except Exception as e:
+        print(e)
+        logging.error(e)
 
 # Para la página de Catalunya:
 todo("http://www.registresolicitants.cat/registre/",'contenido_previo_cat.html','contenidohome')
